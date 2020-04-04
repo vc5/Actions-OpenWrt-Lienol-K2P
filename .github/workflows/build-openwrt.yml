@@ -8,8 +8,10 @@ on:
       - master
     paths:
       - '.config'
-  schedule:
-    - cron: 0 4 * * 5 # 北京时间每周五中午12:00编译
+#  schedule:
+#    - cron: 0 8 * * 5
+#  watch:
+#    types: started
 
 env:
   REPO_URL: https://github.com/Lienol/openwrt.git
@@ -17,14 +19,16 @@ env:
   CONFIG_FILE: .config
   DIY_SH: diy.sh
   FREE_UP_DISK: false
-  SSH_ACTIONS: false
+  SSH_ACTIONS: true
   UPLOAD_BIN_DIR: false
   UPLOAD_FIRMWARE: true
+  UPLOAD_COWTRANSFER: true
   TZ: Asia/Shanghai
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    if: github.event.repository.owner.id == github.event.sender.id
 
     steps:
     - name: Checkout
@@ -111,3 +115,9 @@ jobs:
       with:
         name: OpenWrt_firmware
         path: ${{ env.FIRMWARE }}
+        
+    - name: Upload firmware to cowtransfer
+      if: env.UPLOAD_COWTRANSFER == 'true' && !cancelled()
+      run: |
+        curl -sL https://git.io/cowtransfer | sh
+        ./cowtransfer-uploader -s -p 8 ${FIRMWARE}
